@@ -1,0 +1,29 @@
+name: mqsummit26lab
+
+x-rabbit: &rabbit
+  image: rabbitmq:4.2-management
+  environment:
+    RABBITMQ_ERLANG_COOKIE: mqsummit26lab-cookie
+  volumes:
+    - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    - ./enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    - ./advanced.config:/etc/rabbitmq/advanced.config:ro
+  healthcheck:
+    test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+    interval: 5s
+    timeout: 10s
+    retries: 30
+
+services:
+  rmq1:
+    <<: *rabbit
+    hostname: rmq1
+    ports: ["5672:5672", "15672:15672"]
+  rmq2:
+    <<: *rabbit
+    hostname: rmq2
+    ports: ["5673:5672", "15673:15672"]
+  rmq3:
+    <<: *rabbit
+    hostname: rmq3
+    ports: ["5674:5672", "15674:15672"]

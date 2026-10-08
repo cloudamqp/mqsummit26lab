@@ -1,0 +1,36 @@
+...@style
+
+website: "website" {class: service}
+callcenter: "callcenter" {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+support: "support" {class: service}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>\n(quorum, TTL 30 s, max-length 5,\ndelivery-limit 3, reject-publish,\nat-least-once dead-lettering)" {class: [queue; new]; style.multiple: true}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  tq: "taxi.<id> ×4\n(quorum)" {class: queue; style.multiple: true}
+  dlx: "rides.dlx\n(fanout)" {class: exchange}
+  dead: "ride.dead\n(quorum)" {class: queue}
+  pol: "policies.sh\nride-requests (+ delivery-limit,\nat-least-once, reject-publish),\nrides, taxis" {class: [policy; new]}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  dispatch -> tq: "<id>" {class: route}
+  dlx -> dead {class: route}
+  pol -> rrz {class: applies}
+  pol -> rides {class: applies}
+  rrz -> dlx: "expired, rejected,\ndelivery_limit" {class: [route; new]}
+  tq -> dlx: "rejected" {class: route}
+  pol -> tq {class: applies}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>\nconfirms, mandatory" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>\nexpiration 10 s, some broken" {class: pub}
+managers <- rmq.rrz: "manual ack, prefetch 1" {class: pub}
+managers -> rmq.dispatch: "<id>, reply_to" {class: pub}
+rmq.tq -> taxis: "manual ack / reject" {class: pub}
+rmq.dead -> support {class: pub}
+managers -> rmq.rrz: "basic.nack requeue=False\n(broken ride)" {class: [pub; new]}
+
+note: "Not shown: ops and its exchanges, the manager reply queues, the partner" {shape: text; near: bottom-center; style: {font-color: "#000000"; bold: true; italic: true; font-size: 14}}

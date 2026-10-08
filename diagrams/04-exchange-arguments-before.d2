@@ -1,0 +1,40 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+audit: "audit\n(audit scenario only)" {class: service}
+partner: {class: service}
+ops: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+dropped: "ride.east.*\n(no match, dropped)" {class: [service; ghost]}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>" {class: queue; style.multiple: true}
+  audq: ride.audit {class: queue}
+  unrouted: "rides.unrouted\n(not declared yet)" {class: [exchange; ghost]}
+  unassigned: ride.unassigned {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(fanout)" {class: exchange}
+  notices: "taxi.notices\n(not declared yet)" {class: [exchange; ghost]}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> audq: "ride.#" {class: route}
+  unrouted -> unassigned: "?" {class: ghostedge}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq {class: route}
+  notices -> tq: "?" {class: ghostedge}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>" {class: pub}
+rmq.rides -> dropped {class: ghostedge}
+managers <- rmq.rrz {class: pub}
+rmq.audq -> audit {class: pub}
+rmq.unassigned -> partner {class: pub}
+managers -> rmq.dispatch: "<id>" {class: pub}
+ops -> rmq.alerts: "every taxi" {class: pub}
+ops -> rmq.notices: "targeted alerts?" {class: ghostedge}
+rmq.tq -> taxis {class: pub}

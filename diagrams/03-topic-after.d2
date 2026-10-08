@@ -1,0 +1,30 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+audit: "audit\n(sees east rides too)" {class: service}
+ops: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>" {class: queue; style.multiple: true}
+  audq: ride.audit {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(fanout)" {class: exchange}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  rides -> rrz: "ride.<zone>.*" {class: [route; new]}
+  rides -> audq: "ride.#" {class: [route; new]}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq {class: route}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>" {class: [pub; new]}
+callcenter -> rmq.rides: "ride.<zone>.<type>" {class: [pub; new]}
+managers <- rmq.rrz {class: pub}
+rmq.audq -> audit {class: pub}
+managers -> rmq.dispatch: "<id>" {class: pub}
+ops -> rmq.alerts {class: pub}
+rmq.tq -> taxis {class: pub}

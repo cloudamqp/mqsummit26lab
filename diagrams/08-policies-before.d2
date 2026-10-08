@@ -1,0 +1,30 @@
+...@style
+
+website: "website" {class: service}
+callcenter: "callcenter" {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+partner: "partner" {class: service}
+support: "support" {class: service}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic, alternate-exchange\nargument in common.py)" {class: exchange}
+  rrz: "ride.requests.<zone>\n(quorum, TTL 30 s, max-length 5, DLX:\narguments in manager.py)" {class: queue; style.multiple: true}
+  unrouted: "rides.unrouted\n(internal)" {class: exchange}
+  unassigned: "ride.unassigned\n(classic)" {class: queue}
+  dlx: "rides.dlx\n(fanout)" {class: exchange}
+  dead: "ride.dead\n(quorum)" {class: queue}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> unrouted: "alternate exchange" {class: route}
+  unrouted -> unassigned {class: route}
+  dlx -> dead {class: route}
+  rrz -> dlx: "expired, maxlen" {class: route}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>\npersistent" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>\nexpiration 10 s" {class: pub}
+managers <- rmq.rrz {class: pub}
+rmq.unassigned -> partner {class: pub}
+rmq.dead -> support {class: pub}
+
+note: "Not shown: taxi.dispatch, the taxis, ops and the manager reply queues" {shape: text; near: bottom-center; style: {font-color: "#000000"; bold: true; italic: true; font-size: 14}}

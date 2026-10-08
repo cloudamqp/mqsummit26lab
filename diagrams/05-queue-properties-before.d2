@@ -1,0 +1,40 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+partner: {class: service}
+ops: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>\n(classic, one node)" {class: queue; style.multiple: true}
+  unrouted: "rides.unrouted\n(internal)" {class: exchange}
+  unassigned: ride.unassigned {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(fanout)" {class: exchange}
+  notices: "taxi.notices\n(headers)" {class: exchange}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  replyq: "reply queue\n(not declared yet)" {class: [queue; ghost]}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> unrouted: "alternate exchange" {class: route}
+  unrouted -> unassigned {class: route}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq {class: route}
+  notices -> tq: "id, zone, type" {class: route}
+  def -> replyq: "?" {class: ghostedge}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>\ntransient" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>\ntransient" {class: pub}
+managers <- rmq.rrz {class: pub}
+rmq.unassigned -> partner {class: pub}
+managers -> rmq.dispatch: "<id>" {class: pub}
+ops -> rmq.alerts {class: pub}
+ops -> rmq.notices {class: pub}
+rmq.tq -> taxis {class: pub}
+rmq.def <- taxis: "status?" {class: ghostedge}
+managers <- rmq.replyq: "?" {class: ghostedge}

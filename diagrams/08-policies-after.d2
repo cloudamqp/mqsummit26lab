@@ -1,0 +1,36 @@
+...@style
+
+website: "website" {class: service}
+callcenter: "callcenter" {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+partner: "partner" {class: service}
+support: "support" {class: service}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic, no arguments)" {class: [exchange; new]}
+  rrz: "ride.requests.<zone>\n(quorum, x-queue-type only)" {class: [queue; new]; style.multiple: true}
+  unrouted: "rides.unrouted\n(internal)" {class: exchange}
+  unassigned: "ride.unassigned\n(classic)" {class: queue}
+  dlx: "rides.dlx\n(fanout)" {class: exchange}
+  dead: "ride.dead\n(quorum)" {class: queue}
+  pol_rr: "policy ride-requests\n^ride\\.requests\\.\nmessage-ttl 30000, max-length 5,\ndead-letter-exchange rides.dlx" {class: [policy; new]}
+  pol_rides: "policy rides\n^rides\$\nalternate-exchange rides.unrouted" {class: [policy; new]}
+  opol: "operator policy limits\n.*\nmax-length 1000" {class: [policy; new]}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> unrouted: "alternate exchange" {class: route}
+  unrouted -> unassigned {class: route}
+  dlx -> dead {class: route}
+  pol_rr -> rrz {class: applies}
+  pol_rides -> rides {class: applies}
+  opol -> rrz: "lower limit wins" {class: applies}
+  rrz -> dlx: "expired, maxlen" {class: route}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>\npersistent" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>\nexpiration 10 s" {class: pub}
+managers <- rmq.rrz {class: pub}
+rmq.unassigned -> partner {class: pub}
+rmq.dead -> support {class: pub}
+
+note: "Not shown: taxi.dispatch, the taxis, ops and the manager reply queues" {shape: text; near: bottom-center; style: {font-color: "#000000"; bold: true; italic: true; font-size: 14}}

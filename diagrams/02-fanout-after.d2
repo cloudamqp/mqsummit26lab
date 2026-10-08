@@ -1,0 +1,26 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+manager: {class: service}
+ops: {class: service}
+taxis: "taxi ×4\n(rides and alerts)" {class: service; style.multiple: true}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rr: ride.requests {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(fanout)" {class: [exchange; new]}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  def -> rr: ride.requests {class: route}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq: "every bound queue" {class: [route; new]}
+}
+
+website -> rmq.def: ride.requests {class: pub}
+callcenter -> rmq.def: ride.requests {class: pub}
+manager <- rmq.rr {class: pub}
+manager -> rmq.dispatch: "<id>" {class: pub}
+ops -> rmq.alerts: "type: alert\n(routing key ignored)" {class: [pub; new]}
+rmq.tq -> taxis {class: pub}

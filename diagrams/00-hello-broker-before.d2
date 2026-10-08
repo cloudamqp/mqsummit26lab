@@ -1,0 +1,16 @@
+...@style
+
+website: {class: service}
+manager: {class: service}
+taxis: "taxi ×4\n(no queue, goes home)" {class: [service; ghost]; style.multiple: true}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rr: ride.requests {class: queue}
+  def -> rr: ride.requests {class: route}
+}
+
+website -> rmq.def: ride.requests {class: pub}
+rmq.rr -> manager {class: pub}
+manager -> taxis: "?" {class: ghostedge}

@@ -1,0 +1,36 @@
+...@style
+
+website: "website" {class: service}
+callcenter: "callcenter" {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+support: "support" {class: service}
+lost: "rides lost\n(taxi crashed after delivery)" {class: [service; ghost]}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>\n(quorum, TTL 30 s, max-length 5)" {class: queue; style.multiple: true}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  tq: "taxi.<id> ×4\n(quorum)" {class: queue; style.multiple: true}
+  dlx: "rides.dlx\n(fanout)" {class: exchange}
+  dead: "ride.dead\n(quorum)" {class: queue}
+  pol: "policies.sh\nride-requests, rides" {class: policy}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  dispatch -> tq: "<id>" {class: route}
+  dlx -> dead {class: route}
+  pol -> rrz {class: applies}
+  pol -> rides {class: applies}
+  rrz -> dlx: "expired, maxlen" {class: route}
+  tq -> dlx: "refused rides?" {class: ghostedge}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>\nconfirms, mandatory" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>\nexpiration 10 s" {class: pub}
+managers <- rmq.rrz: "auto_ack, no prefetch limit" {class: pub}
+managers -> rmq.dispatch: "<id>, reply_to" {class: pub}
+rmq.tq -> taxis: "auto_ack" {class: pub}
+rmq.dead -> support {class: pub}
+taxis -> lost {class: ghostedge}
+
+note: "Not shown: ops and its exchanges, the manager reply queues, the partner" {shape: text; near: bottom-center; style: {font-color: "#000000"; bold: true; italic: true; font-size: 14}}

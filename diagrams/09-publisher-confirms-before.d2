@@ -1,0 +1,30 @@
+...@style
+
+website: "website" {class: service}
+callcenter: "callcenter" {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+partner: "partner" {class: service}
+lost: "lost rides\n(unroutable, queue full)\nthe website never knows" {class: [service; ghost]}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>\n(quorum, TTL 30 s, max-length 5)" {class: queue; style.multiple: true}
+  unrouted: "rides.unrouted\n(internal)" {class: exchange}
+  unassigned: "ride.unassigned\n(classic)" {class: queue}
+  pol: "policies.sh\nride-requests, rides" {class: policy}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> unrouted: "alternate exchange" {class: route}
+  unrouted -> unassigned {class: route}
+  pol -> rrz {class: applies}
+  pol -> rides {class: applies}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>\npersistent, fire and forget" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>\nexpiration 10 s" {class: pub}
+managers <- rmq.rrz {class: pub}
+rmq.unassigned -> partner {class: pub}
+rmq.rides -> lost: "no route" {class: ghostedge}
+rmq.rrz -> lost: "reject-publish" {class: ghostedge}
+
+note: "Not shown: the taxi side, ops, dead-lettering and the manager reply queues" {shape: text; near: bottom-center; style: {font-color: "#000000"; bold: true; italic: true; font-size: 14}}

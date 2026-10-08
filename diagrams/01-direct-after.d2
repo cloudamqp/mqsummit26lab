@@ -1,0 +1,24 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+manager: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+dropped: "rides for t9\n(no binding, dropped)" {class: [service; ghost]}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rr: ride.requests {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: [exchange; new]}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  def -> rr: ride.requests {class: route}
+  dispatch -> tq: "binding key: t1 … t4" {class: [route; new]}
+}
+
+website -> rmq.def: ride.requests {class: pub}
+callcenter -> rmq.def: ride.requests {class: pub}
+manager <- rmq.rr {class: pub}
+manager -> rmq.dispatch: "routing key: <id>" {class: [pub; new]}
+rmq.tq -> taxis {class: pub}
+rmq.dispatch -> dropped: "t9 (ghost-taxi)" {class: ghostedge}

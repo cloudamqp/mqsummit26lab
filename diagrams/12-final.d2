@@ -1,0 +1,51 @@
+...@style
+
+website: "website" {class: service}
+callcenter: "callcenter" {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+partner: "partner" {class: service}
+ops: "ops" {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+support: "support" {class: service}
+audit: "audit\n(audit scenario only)" {class: service}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rides: "rides\n(topic)" {class: exchange}
+  rrz: "ride.requests.<zone>\n(quorum)" {class: queue; style.multiple: true}
+  unrouted: "rides.unrouted\n(internal)" {class: exchange}
+  unassigned: "ride.unassigned\n(classic)" {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(fanout)" {class: exchange}
+  notices: "taxi.notices\n(headers)" {class: exchange}
+  tq: "taxi.<id> ×4\n(quorum)" {class: queue; style.multiple: true}
+  replyq: "amq.gen-…\n(exclusive)" {class: queue; style.multiple: true}
+  dlx: "rides.dlx\n(fanout)" {class: exchange}
+  dead: "ride.dead\n(quorum)" {class: queue}
+  audq: "ride.audit" {class: queue}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> unrouted: "alternate exchange" {class: route}
+  unrouted -> unassigned {class: route}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq {class: route}
+  notices -> tq: "id, zone, type" {class: route}
+  def -> replyq: "amq.gen-…" {class: route}
+  dlx -> dead {class: route}
+  rrz -> dlx: "expired, rejected,\ndelivery_limit" {class: route}
+  tq -> dlx: "rejected" {class: route}
+  rides -> audq: "ride.#" {class: route}
+}
+
+website -> rmq.rides: "confirms, mandatory" {class: pub}
+callcenter -> rmq.rides: "expiration 10 s" {class: pub}
+managers <- rmq.rrz: "manual ack, prefetch 1" {class: pub}
+rmq.unassigned -> partner {class: pub}
+managers -> rmq.dispatch: "<id>, reply_to" {class: pub}
+ops -> rmq.alerts {class: pub}
+ops -> rmq.notices {class: pub}
+rmq.tq -> taxis: "manual ack / reject" {class: pub}
+rmq.def <- taxis: "status → reply_to" {class: pub}
+managers <- rmq.replyq {class: pub}
+rmq.dead -> support {class: pub}
+rmq.audq -> audit {class: pub}

@@ -1,0 +1,39 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+managers: "manager <zone>\n(north, south)" {class: service; style.multiple: true}
+audit: "audit\n(audit scenario only)" {class: service}
+partner: {class: service}
+ops: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+
+rmq: {
+  class: broker
+  rides: "rides\n(topic, alternate-exchange)" {class: [exchange; new]}
+  rrz: "ride.requests.<zone>" {class: queue; style.multiple: true}
+  audq: ride.audit {class: queue}
+  unrouted: "rides.unrouted\n(fanout, internal)" {class: [exchange; new]}
+  unassigned: ride.unassigned {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(fanout)" {class: exchange}
+  notices: "taxi.notices\n(headers)" {class: [exchange; new]}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  rides -> rrz: "ride.<zone>.*" {class: route}
+  rides -> audq: "ride.#" {class: route}
+  rides -> unrouted: "alternate exchange\n(no binding matched)" {class: [route; new]}
+  unrouted -> unassigned {class: [route; new]}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq {class: route}
+  notices -> tq: "x-match: any\nid, zone, type" {class: [route; new]}
+}
+
+website -> rmq.rides: "ride.<zone>.<type>" {class: pub}
+callcenter -> rmq.rides: "ride.<zone>.<type>" {class: pub}
+managers <- rmq.rrz {class: pub}
+rmq.audq -> audit {class: pub}
+rmq.unassigned -> partner: "east rides" {class: pub}
+managers -> rmq.dispatch: "<id>" {class: pub}
+ops -> rmq.alerts: "every taxi" {class: pub}
+ops -> rmq.notices: "headers: id / zone / type" {class: [pub; new]}
+rmq.tq -> taxis {class: pub}

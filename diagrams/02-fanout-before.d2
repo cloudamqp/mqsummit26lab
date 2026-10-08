@@ -1,0 +1,26 @@
+...@style
+
+website: {class: service}
+callcenter: {class: service}
+manager: {class: service}
+ops: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rr: ride.requests {class: queue}
+  dispatch: "taxi.dispatch\n(direct)" {class: exchange}
+  alerts: "taxi.alerts\n(not declared yet)" {class: [exchange; ghost]}
+  tq: "taxi.<id> ×4" {class: queue; style.multiple: true}
+  def -> rr: ride.requests {class: route}
+  dispatch -> tq: "<id>" {class: route}
+  alerts -> tq: "?" {class: ghostedge}
+}
+
+website -> rmq.def: ride.requests {class: pub}
+callcenter -> rmq.def: ride.requests {class: pub}
+manager <- rmq.rr {class: pub}
+manager -> rmq.dispatch: "<id>" {class: pub}
+ops -> rmq.alerts: "?" {class: ghostedge}
+rmq.tq -> taxis {class: pub}

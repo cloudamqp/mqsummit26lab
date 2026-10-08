@@ -1,0 +1,137 @@
+# Shared style for the workshop diagrams. Import it with `...@style`.
+#
+#  service   (oval)      a Python service
+#  exchange  (hexagon)   an exchange
+#  queue     (cylinder)  a queue
+#  broker                the RabbitMQ container
+#  pub       solid       publish / consume, outside the broker
+#  route     dashed      routing inside the broker (bindings, alternate exchange, dead-lettering)
+#  applies   dotted      a policy applying to a queue or exchange
+#  ghost     faded       missing, not declared yet, or lost
+#  new       orange      added by the exercise (only in the "after" diagrams)
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 40
+  }
+}
+
+direction: right
+
+classes: {
+  service: {
+    shape: oval
+    style: {
+      fill: "#FFF4EA"
+      stroke: "#3B2314"
+      stroke-width: 2
+      font-color: "#000000"
+      bold: true
+      font-size: 14
+    }
+  }
+  exchange: {
+    shape: hexagon
+    style: {
+      fill: "#DEDEDE"
+      stroke: "#3B2314"
+      stroke-width: 2
+      font-color: "#000000"
+      bold: true
+      font-size: 14
+    }
+  }
+  queue: {
+    shape: queue
+    style: {
+      fill: "#DEDEDE"
+      stroke: "#3B2314"
+      stroke-width: 2
+      font-color: "#000000"
+      bold: true
+      font-size: 14
+    }
+  }
+  policy: {
+    shape: page
+    style: {
+      fill: "#FFF4EA"
+      stroke: "#3B2314"
+      stroke-width: 1
+      font-color: "#000000"
+      bold: true
+      font-size: 13
+    }
+  }
+  broker: {
+    label: RabbitMQ
+    style: {
+      fill: "#FBBC8F"
+      stroke: "#3B2314"
+      stroke-width: 2
+      font-color: "#000000"
+      font-size: 24
+      bold: true
+    }
+  }
+  pub: {
+    style: {
+      stroke: "#3B2314"
+      stroke-width: 2
+      font-color: "#000000"
+      italic: true
+      bold: true
+      font-size: 13
+    }
+  }
+  route: {
+    style: {
+      stroke: "#D2691E"
+      stroke-width: 2
+      stroke-dash: 4
+      font-color: "#000000"
+      italic: true
+      bold: true
+      font-size: 13
+    }
+  }
+  applies: {
+    style: {
+      stroke: "#7A5C48"
+      stroke-width: 1
+      stroke-dash: 2
+      font-color: "#000000"
+      italic: true
+      bold: true
+      font-size: 12
+    }
+  }
+  ghost: {
+    style: {
+      fill: "#FFF4EA"
+      stroke: "#F0A070"
+      stroke-width: 2
+      stroke-dash: 4
+      font-color: "#000000"
+    }
+  }
+  ghostedge: {
+    style: {
+      stroke: "#F0A070"
+      stroke-width: 2
+      stroke-dash: 4
+      font-color: "#000000"
+      italic: true
+      bold: true
+    }
+  }
+  new: {
+    style: {
+      stroke: "#D2691E"
+      stroke-width: 3
+      font-color: "#000000"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+...@style
+
+website: {class: service}
+manager: {class: service}
+taxis: "taxi ×4" {class: service; style.multiple: true}
+
+rmq: {
+  class: broker
+  def: "default\nexchange" {class: exchange}
+  rr: ride.requests {class: queue}
+  tq: "taxi.<id> ×4" {class: [queue; new]; style.multiple: true}
+  def -> rr: ride.requests {class: route}
+  def -> tq: "taxi.<id>" {class: [route; new]}
+}
+
+website -> rmq.def: ride.requests {class: pub}
+manager <- rmq.rr {class: pub}
+manager -> rmq.def: "taxi.<id>" {class: [pub; new]}
+rmq.tq -> taxis {class: [pub; new]}

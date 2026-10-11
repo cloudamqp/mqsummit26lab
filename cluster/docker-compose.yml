@@ -1,7 +1,7 @@
 name: mqsummit26lab
 
 x-rabbit: &rabbit
-  image: rabbitmq:4.2-management
+  image: rabbitmq:4.3.6-management
   environment:
     RABBITMQ_ERLANG_COOKIE: mqsummit26lab-cookie
   volumes:

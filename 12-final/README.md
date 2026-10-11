@@ -25,14 +25,15 @@ taxi ─> (default) ─"amq.gen-..."─> [amq.gen-..., exclusive] ─> manager  
  * `callcenter.py`: per-message TTL, and broken requests on demand
  * `manager.py`: a quorum queue per zone, manual acknowledgements with a prefetch of 1, an exclusive server-named
    reply queue, rejecting poison messages
- * `taxi.py`: a quorum queue bound to a direct, a fanout and a headers exchange, manual acknowledgements, rejecting
-   rides, replies with `reply_to`
+ * `taxi.py`: a quorum queue bound to a direct, a fanout and a headers exchange, manual acknowledgements, returning
+   rides for later when on a break, replies with `reply_to`
  * `ops.py`: fanout and headers exchanges
  * `partner.py`: an internal exchange used as an alternate exchange
  * `support.py`: dead-lettering and its headers
  * `audit.py`: a catch-all topic binding
- * `policies.sh`: TTL, length limit, overflow, dead-lettering, delivery limit and the alternate exchange, all as
-   policies
+ * `policies.sh`: TTL, length limit, overflow, dead-lettering, delivery limit, delayed retry and the alternate
+   exchange, all as policies
+ * `run.py`: restarts the services that crash, as a supervisor would
 
 ## Run it
 

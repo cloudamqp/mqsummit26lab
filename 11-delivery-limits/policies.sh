@@ -7,6 +7,7 @@ ctl() { "$(dirname "$0")/../cluster/cluster.sh" "$@"; }
 ctl set-policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
     '{"message-ttl": 30000, "dead-letter-exchange": "rides.dlx", "max-length": 5}'
 
+# TODO(ex11): when a taxi returns a ride, deliver it again after a delay that grows with each attempt.
 ctl set-policy --apply-to quorum_queues taxis '^taxi\.' '{"dead-letter-exchange": "rides.dlx"}'
 
 ctl set-policy --apply-to exchanges rides '^rides$' '{"alternate-exchange": "rides.unrouted"}'

@@ -10,7 +10,7 @@ website, callcenter ─> ride requests ─> managers ─> taxis
 ```
 
 Each service is a short Python script. They talk to each other only through a RabbitMQ broker: by default a
-3-node RabbitMQ `4.2` cluster that runs in Docker on your machine, or a [CloudAMQP](https://www.cloudamqp.com)
+3-node RabbitMQ `4.3` cluster that runs in Docker on your machine, or a [CloudAMQP](https://www.cloudamqp.com)
 instance (see [Choosing the broker](#choosing-the-broker)).
 
 ## Prerequisites

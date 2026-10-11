@@ -4,6 +4,9 @@
     python run.py --list          # list scenarios
     python run.py basic --for 20  # stop after 20 seconds
     python run.py --without t3    # leave out every command that contains "t3"
+
+A service that crashes (exits with an error) is started again after 1 s, as a supervisor such as systemd or
+Kubernetes would do.
 """
 
 import argparse
@@ -101,32 +104,44 @@ def main():
 
     here = Path(__file__).parent
     lock = threading.Lock()
-    processes = []
-    commands = [c for c in SCENARIOS[args.scenario] if not any(t in " ".join(c) for t in args.without)]
-    for command, colour in zip(commands, itertools.cycle(COLOURS)):
+
+    def start(command, colour):
         process = subprocess.Popen(
             [sys.executable, "-u", *command], cwd=here, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         )
         threading.Thread(target=stream, args=(process, colour, lock), daemon=True).start()
-        processes.append((command, process))
+        return process
+
+    processes = []  # [command, colour, process]
+    commands = [c for c in SCENARIOS[args.scenario] if not any(t in " ".join(c) for t in args.without)]
+    for command, colour in zip(commands, itertools.cycle(COLOURS)):
+        processes.append([command, colour, start(command, colour)])
         time.sleep(0.3)
 
     deadline = time.monotonic() + args.duration if args.duration else None
-    running = {process.pid for _, process in processes}
+    running = {process.pid for _, _, process in processes}
     try:
         while running and (deadline is None or time.monotonic() < deadline):
-            for command, process in processes:
+            for entry in processes:
+                command, colour, process = entry
                 if process.pid in running and process.poll() is not None:
                     running.discard(process.pid)
-                    print(f"[runner] {' '.join(command)} exited with code {process.returncode}", flush=True)
+                    if process.returncode == 0:
+                        print(f"[runner] {' '.join(command)} exited", flush=True)
+                        continue
+                    print(f"[runner] {' '.join(command)} crashed (exit code {process.returncode}), "
+                          "restarting it in 1 s", flush=True)
+                    time.sleep(1)
+                    entry[2] = start(command, colour)
+                    running.add(entry[2].pid)
             time.sleep(0.2)
     except KeyboardInterrupt:
         pass
     finally:
-        for _, process in processes:
+        for _, _, process in processes:
             process.terminate()
-        for _, process in processes:
+        for _, _, process in processes:
             process.wait()
 
 

@@ -109,7 +109,7 @@ properties = pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent)
 
 ## Stretch goals
 
- * Give each taxi an auto-delete queue, bound to `taxi.alerts`, for alerts only. What happens to alerts sent
-   while a taxi is off duty?
+ * Give each taxi an exclusive, auto-delete queue, bound to `taxi.alerts`, for alerts only. What happens to alerts sent
+   while a taxi is off duty? Why does RabbitMQ 4.3 refuse the queue if it's neither durable nor exclusive?
 
 The solution is in `06-quorum-queues`.

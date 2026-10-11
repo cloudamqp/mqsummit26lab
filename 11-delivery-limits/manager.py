@@ -2,6 +2,7 @@
 
 import argparse
 import itertools
+import os
 import time
 
 import pika
@@ -44,11 +45,9 @@ def main(log, args):
             taxi_id = pick_taxi(ride)
         except KeyError as e:
             delivery_count = (properties.headers or {}).get("x-delivery-count", 0)
-            log.error("ride %s has no %s (delivery count: %s), returning it to the queue",
-                      ride["ride_id"], e, delivery_count)
-            # TODO(ex11): this ride will never succeed. Don't return it to the queue.
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-            return
+            log.error("ride %s has no %s (delivery count: %s), the manager crashes", ride["ride_id"], e, delivery_count)
+            # TODO(ex11): this ride will never succeed. Reject it instead of crashing on it.
+            os._exit(1)
         time.sleep(args.slow)
         log.info("ride %s from %s: assigning taxi %s", ride["ride_id"], ride["source"], taxi_id)
         ch.basic_publish(exchange="taxi.dispatch", routing_key=taxi_id, body=body,

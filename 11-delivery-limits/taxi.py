@@ -21,6 +21,7 @@ def main(log, args):
             return
         if args.on_break:
             log.info("ride %s: on a break, refusing it (redelivered: %s)", message["ride_id"], method.redelivered)
+            # TODO(ex11): keep the ride for when the break is over: return it to the queue.
             ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
             return
         if args.crash_every and next(rides) % args.crash_every == 0:

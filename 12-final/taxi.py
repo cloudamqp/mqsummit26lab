@@ -20,8 +20,9 @@ def main(log, args):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
         if args.on_break:
-            log.info("ride %s: on a break, refusing it (redelivered: %s)", message["ride_id"], method.redelivered)
-            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+            log.info("ride %s: on a break, returning it for later (redelivered: %s)",
+                     message["ride_id"], method.redelivered)
+            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
             return
         if args.crash_every and next(rides) % args.crash_every == 0:
             log.error("ride %s: the taxi broke down", message["ride_id"])

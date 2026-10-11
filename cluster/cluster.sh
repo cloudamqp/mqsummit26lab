@@ -38,17 +38,20 @@ USAGE
 local_only() {
   if ! mgmt is-local; then
     echo "$1 needs the local Docker cluster, but broker.env (or RABBITMQ_URL) points to another broker." >&2
-    echo "A CloudAMQP free plan has a single node that can't be stopped: follow this task on the facilitator's screen." >&2
+    case $1 in
+      stop-node|start-node) echo "A CloudAMQP free plan has a single node that can't be stopped: follow this task on the facilitator's screen." >&2 ;;
+      *) echo "To use the local cluster for this command: RABBITMQ_URL=amqp://guest:guest@localhost cluster/cluster.sh $*" >&2 ;;
+    esac
     exit 1
   fi
 }
 
 case "${1:-help}" in
   status|queues|reset|policies|set-policy|clear-policy|set-operator-policy|clear-operator-policy) mgmt "$@" ;;
-  up)         local_only up; compose up -d --wait ;;
-  down)       local_only down; compose down -v ;;
-  stop-node)  local_only stop-node; compose stop "$(node "${2:-}")" ;;
-  start-node) local_only start-node; compose start "$(node "${2:-}")" && compose up -d --wait "$(node "$2")" ;;
-  ctl)        local_only ctl; shift; n=${1:?node number required}; shift; ctl "$n" "$@" ;;
+  up)         local_only "$@"; compose up -d --wait ;;
+  down)       local_only "$@"; compose down -v ;;
+  stop-node)  local_only "$@"; compose stop "$(node "${2:-}")" ;;
+  start-node) local_only "$@"; compose start "$(node "${2:-}")" && compose up -d --wait "$(node "$2")" ;;
+  ctl)        local_only "$@"; shift; n=${1:?node number required}; shift; ctl "$n" "$@" ;;
   *)          usage ;;
 esac

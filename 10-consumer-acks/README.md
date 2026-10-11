@@ -108,7 +108,7 @@ channel.basic_qos(prefetch_count=1)
 <summary>Taxi policy</summary>
 
 ```shell
-ctl set_policy --apply-to quorum_queues taxis '^taxi\.' '{"dead-letter-exchange": "rides.dlx"}'
+ctl set-policy --apply-to quorum_queues taxis '^taxi\.' '{"dead-letter-exchange": "rides.dlx"}'
 ```
 </details>
 

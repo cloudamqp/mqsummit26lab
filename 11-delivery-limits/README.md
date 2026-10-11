@@ -56,7 +56,8 @@ python run.py broken-rides
        run `./policies.sh`, and repeat the experiment. Watch the message count of the ride queues while support is
        away
  5. Remove `"overflow": "reject-publish"` from the policy, run `./policies.sh`, and look for the warning in the
-    broker log: `docker compose -f ../cluster/docker-compose.yml logs | grep at-least-once`
+    broker log: `docker compose -f ../cluster/docker-compose.yml logs | grep at-least-once` (on CloudAMQP, in the
+    instance's log in the console)
 
 ## Check
 
@@ -88,7 +89,7 @@ ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 <summary>Policy</summary>
 
 ```shell
-ctl set_policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
+ctl set-policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
     '{"message-ttl": 30000, "dead-letter-exchange": "rides.dlx", "max-length": 5,
       "delivery-limit": 3, "dead-letter-strategy": "at-least-once", "overflow": "reject-publish"}'
 ```

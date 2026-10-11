@@ -20,10 +20,11 @@ alternate exchange of `rides` in exercise 04.
 
 A **policy** is a set of settings stored in the broker. It applies to every queue or exchange whose name matches
 a regular expression, including the ones that already exist and the ones declared later. Changing or deleting a
-policy takes effect immediately, without restarting anything.
+policy takes effect immediately, without restarting anything. `cluster/cluster.sh set-policy` sets one through
+the management HTTP API. On the local cluster, `rabbitmqctl set_policy` takes the same arguments.
 
 ```shell
-rabbitmqctl set_policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
+cluster/cluster.sh set-policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
     '{"message-ttl": 30000, "dead-letter-exchange": "rides.dlx", "max-length": 5}'
 ```
 
@@ -32,7 +33,7 @@ rabbitmqctl set_policy --apply-to quorum_queues ride-requests '^ride\.requests\.
  * `--apply-to` restricts a policy to `queues`, `classic_queues`, `quorum_queues`, `streams`, `exchanges` or `all`
  * Only one policy applies to a given queue or exchange: the matching one with the highest `--priority`.
    The definitions of several policies are never merged
- * An **operator policy** (`set_operator_policy`) is a second kind of policy, meant for the people who run the
+ * An **operator policy** (`set-operator-policy`) is a second kind of policy, meant for the people who run the
    broker. It's applied on top of the regular policy, and for numeric limits such as `max-length` the lower value wins
  * When a queue has both an argument and a policy for the same setting, the broker decides which one wins. For
    numeric limits, such as `max-length` or `message-ttl`, it's the lower value
@@ -71,9 +72,10 @@ python run.py
 ```
 $ ./policies.sh
 ...
-vhost  name           pattern            apply-to       definition                                                               priority
-/      rides          ^rides$            exchanges      {"alternate-exchange":"rides.unrouted"}                                  0
-/      ride-requests  ^ride\.requests\.  quorum_queues  {"dead-letter-exchange":"rides.dlx","max-length":5,"message-ttl":30000}  0
+policies:
+name           pattern            apply-to       definition                                                               priority
+ride-requests  ^ride\.requests\.  quorum_queues  {"dead-letter-exchange":"rides.dlx","max-length":5,"message-ttl":30000}  0
+rides          ^rides$            exchanges      {"alternate-exchange":"rides.unrouted"}                                  0
 ```
 
 ## Questions
@@ -89,20 +91,20 @@ vhost  name           pattern            apply-to       definition              
 <summary>policies.sh</summary>
 
 ```shell
-ctl set_policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
+ctl set-policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
     '{"message-ttl": 30000, "dead-letter-exchange": "rides.dlx", "max-length": 5}'
-ctl set_policy --apply-to exchanges rides '^rides$' '{"alternate-exchange": "rides.unrouted"}'
+ctl set-policy --apply-to exchanges rides '^rides$' '{"alternate-exchange": "rides.unrouted"}'
 ```
 
 ```shell
-ctl set_operator_policy --apply-to queues limits '.*' '{"max-length": 1000}'
+ctl set-operator-policy --apply-to queues limits '.*' '{"max-length": 1000}'
 ```
 </details>
 
 ## Stretch goals
 
- * Set the same policies through the HTTP API with `curl -u guest:guest -X PUT
-   http://localhost:15672/api/policies/%2F/ride-requests -H 'content-type: application/json' -d '...'`
+ * Set the same policies with `curl` and the HTTP API that `cluster.sh` uses. On the local cluster:
+   `curl -u guest:guest -X PUT http://localhost:15672/api/policies/%2F/ride-requests -H 'content-type: application/json' -d '...'`
  * Export the broker definitions from the UI (**Overview**, **Export definitions**) and find your policies in the file
 
 The solution is in `09-publisher-confirms`.

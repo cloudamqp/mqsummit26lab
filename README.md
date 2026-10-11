@@ -9,14 +9,15 @@ website, callcenter ─> ride requests ─> managers ─> taxis
                                 ops ─> alerts ─> taxis
 ```
 
-Each service is a short Python script. They talk to each other only through a
-3-node RabbitMQ `4.2` cluster that runs in Docker on your machine.
+Each service is a short Python script. They talk to each other only through a RabbitMQ broker: by default a
+3-node RabbitMQ `4.2` cluster that runs in Docker on your machine, or a [CloudAMQP](https://www.cloudamqp.com)
+instance (see [Choosing the broker](#choosing-the-broker)).
 
 ## Prerequisites
 
- * Docker with Docker Compose v2 (`docker compose version`)
  * Python `3.9` or later
- * Ports 5672 to 5674 and 15672 to 15674 free on `localhost`
+ * For the local cluster: Docker with Docker Compose v2 (`docker compose version`), and ports 5672 to 5674 and 15672
+   to 15674 free on `localhost`
 
 ```shell
 python3 -m venv .venv
@@ -24,13 +25,47 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## The cluster
+## Choosing the broker
+
+Without any configuration, everything uses the local cluster. To use another broker, such as a CloudAMQP instance:
+
+```shell
+cp broker.env.example broker.env
+```
+
+Then set `RABBITMQ_URL` in `broker.env` to the AMQP URL of the broker. For CloudAMQP, copy the URL from the
+instance's details page: `amqps://USER:PASSWORD@HOST.rmq.cloudamqp.com/VHOST`. The part after the last `/` is the
+virtual host the exercises use. `broker.env` is ignored by git, so your password stays out of the repository.
+
+ * The services (`common.py:connect()`) and `cluster/cluster.sh` both read `broker.env`. A `RABBITMQ_URL`
+   environment variable overrides it
+ * `RABBITMQ_URL` can hold several URLs separated by commas, one per node. The services try them in random order
+ * `cluster/cluster.sh` talks to the broker's management HTTP API, at `https://HOST` for `amqps://` URLs and at
+   `http://HOST:15672` for `amqp://` URLs. Set `RABBITMQ_MGMT_URL` if yours is somewhere else
+
+On CloudAMQP, a few tasks need the local cluster instead:
+
+ * Stopping and starting nodes (exercises 05 and 06). `cluster.sh stop-node` only works with the local cluster
+ * Operator policies (exercise 08, task 5) need a user with the `administrator` tag
+ * Reading the broker log (exercise 11, task 5): use the CloudAMQP console
+ * On a single-node instance, quorum queues have one member, so exercise 06 has no leader election to watch
+
+## The broker
+
+```shell
+cluster/cluster.sh status      # the broker, its RabbitMQ version and its nodes
+cluster/cluster.sh queues      # queues, their type, their nodes and their message count
+cluster/cluster.sh reset       # delete every queue, exchange, binding and policy in the virtual host (*)
+cluster/cluster.sh policies    # list the policies
+cluster/cluster.sh set-policy --apply-to queues NAME PATTERN DEFINITION
+cluster/cluster.sh clear-policy NAME
+```
+
+These work with any broker. (*) On CloudAMQP, `reset` keeps CloudAMQP's own policies, which have negative
+priorities, and its operator policies. The local cluster has a few more commands:
 
 ```shell
 cluster/cluster.sh up          # start the 3 nodes, rmq1 to rmq3
-cluster/cluster.sh status      # cluster members and running nodes
-cluster/cluster.sh queues      # queues, their type, their nodes and their message count
-cluster/cluster.sh reset       # delete every queue, exchange, binding and policy
 cluster/cluster.sh stop-node 2 # stop one node, keeping its data
 cluster/cluster.sh start-node 2
 cluster/cluster.sh ctl 1 list_exchanges name type   # run any rabbitmqctl command on node 1
@@ -38,7 +73,7 @@ cluster/cluster.sh down        # stop the cluster and delete all its data
 ```
 
  * Management UI: http://localhost:15672 (also on 15673 and 15674), user
-   `guest`, password `guest`
+   `guest`, password `guest`. On CloudAMQP, open the management UI from the instance's console
  * AMQP: `localhost:5672` (`rmq1`), `localhost:5673` (`rmq2`), `localhost:5674` (`rmq3`)
 
 Reset the broker at the start of each exercise. Most exercises change how
@@ -92,4 +127,5 @@ python taxi.py --id t3         # run one service by hand, in another terminal
    `cluster/cluster.sh reset`
  * `NOT_FOUND - no exchange ...`: a service publishes to an exchange that nobody has declared yet. Check the order in
    which the services declare things, or start the service that declares it first
- * A service keeps logging `connection lost`: check that the cluster is running with `cluster/cluster.sh status`
+ * A service keeps logging `connection lost`: check that the broker is running with `cluster/cluster.sh status`,
+   and that `RABBITMQ_URL` in `broker.env` is right

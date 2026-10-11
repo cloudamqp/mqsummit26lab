@@ -50,7 +50,8 @@ cd 00-hello-broker
 python run.py
 ```
 
-Open the management UI at http://localhost:15672 (user `guest`, password `guest`).
+Open the management UI at http://localhost:15672 (user `guest`, password `guest`). On CloudAMQP, open it from the
+instance's console.
 
 ## Tasks
 

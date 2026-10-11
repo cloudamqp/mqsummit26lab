@@ -58,7 +58,7 @@ python run.py
        the ride was accepted
  2. Run the company without the website (`python run.py --without website`) and run the website by hand in a second
     terminal with each combination of options. Fill in the table below, first with the policies as they are, then
-    without the alternate exchange (`../cluster/cluster.sh ctl 1 clear_policy rides`)
+    without the alternate exchange (`../cluster/cluster.sh clear-policy rides`)
 
     | `website.py` options        | east ride, alternate exchange | east ride, no alternate exchange |
     |-----------------------------|-------------------------------|----------------------------------|
@@ -72,7 +72,7 @@ python run.py
     the limit
 
     ```shell
-    ../cluster/cluster.sh ctl 1 set_policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
+    ../cluster/cluster.sh set-policy --apply-to quorum_queues ride-requests '^ride\.requests\.' \
         '{"max-length": 3, "overflow": "reject-publish", "dead-letter-exchange": "rides.dlx"}'
     ```
  4. Run `./policies.sh` again to restore the policies

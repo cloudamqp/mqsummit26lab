@@ -62,9 +62,9 @@ python run.py
 
 ```
 $ ../cluster/cluster.sh queues
-name                 type     leader       members                                  messages
-ride.requests.north  quorum   rabbit@rmq2  [rabbit@rmq2, rabbit@rmq1, rabbit@rmq3]  0
-taxi.t1              quorum   rabbit@rmq3  [rabbit@rmq3, rabbit@rmq1, rabbit@rmq2]  0
+name                 type    state    leader       members                                  messages
+ride.requests.north  quorum  running  rabbit@rmq2  [rabbit@rmq1, rabbit@rmq2, rabbit@rmq3]  0
+taxi.t1              quorum  running  rabbit@rmq3  [rabbit@rmq1, rabbit@rmq2, rabbit@rmq3]  0
 ...
 ```
 

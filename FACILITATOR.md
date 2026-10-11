@@ -16,6 +16,27 @@ them were also reproduced on the workshop cluster. Paths are relative to the
    exercise 11
  * Every queue in the exercises is durable from the start, because transient non-exclusive queues are a deprecated
    feature in 4.x (`deps/rabbit/src/rabbit_amqqueue.erl:117`)
+ * `cluster/cluster.sh` uses the management HTTP API (`deps/rabbitmq_management/src/rabbit_mgmt_dispatcher.erl:107-155`)
+   so that it also works with CloudAMQP. The message counts that `queues` shows come from statistics refreshed every
+   5 s by default (`collect_statistics_interval`, `deps/rabbit/Makefile:42`), so they can lag a little. `/api/nodes`
+   needs the `monitoring` tag (`deps/rabbitmq_management/src/rabbit_mgmt_wm_nodes.erl:35-36`) and operator policies
+   the `administrator` tag (`deps/rabbitmq_management/src/rabbit_mgmt_wm_operator_policy.erl:74-79`)
+
+### Running the workshop on CloudAMQP
+
+Participants set `RABBITMQ_URL` in `broker.env` (see the README). Things that differ from the local cluster:
+
+ * `stop-node` and `start-node` only work locally, so exercise 05 tasks 5 and 6 and exercise 06 tasks 4 to 7 need the
+   local cluster (or, on a dedicated plan, restarting nodes from the CloudAMQP console)
+ * Exercise 08 task 5: operator policies need a user with the `administrator` tag
+ * Exercise 11: `cluster/advanced.config` isn't applied, so at-least-once dead-lettering retries every 180 s instead of
+   10 s. Task 5's broker log is in the CloudAMQP console
+ * On a single-node instance, quorum queues have one member, so exercise 06 has no leader election to observe
+ * The instance's RabbitMQ version may not be the `4.2.9` that these notes were checked against
+ * `cluster/cluster.sh reset` empties the virtual host instead of recreating it, because CloudAMQP users can't create
+   virtual hosts. It deletes the queues, the exchanges and the policies with priority 0 or more, and keeps CloudAMQP's
+   own policies (`default`, `Celery`, `stream-limits` and `tmp`, with negative priorities) and its operator policy.
+   The workshop's policies have priority 0, so they replace CloudAMQP's on the queues they match
 
 Suggested timing for a full day: 00 to 03 in the morning, 06, 07, 09, 10 and 11 in the afternoon. Exercises 04, 05 and
 08 are optional.
@@ -84,7 +105,7 @@ Suggested timing for a full day: 00 to 03 in the morning, 06, 07, 09, 10 and 11 
    and a restarted manager gets a new name. A reply sent to the old name is dropped
  * Task 5, verified: with the website publishing every 2 s (persistent) and the call centre every 5 s (transient),
    only the website's rides are left after the node restart. While the node is down, `cluster/cluster.sh queues` shows
-   the queue without a type or a member list
+   the queue in state `stopped`, with `?` messages
  * Task 6, verified: declaring the classic queue while its node is down fails with `404 NOT_FOUND` (`queue
    'ride.requests.north' in vhost '/' process is stopped by supervisor`, `deps/rabbit/src/rabbit_amqqueue.erl:670-685`),
    so the north manager crashes. The north rides published meanwhile are lost, persistent or not: the queue was empty

@@ -2,16 +2,20 @@
 
 import json
 import logging
+import os
 import random
 import sys
 import time
 import uuid
+from pathlib import Path
 
 import pika
 from pika.exceptions import AMQPConnectionError
 
-NODES = [("localhost", 5672), ("localhost", 5673), ("localhost", 5674)]
-CREDENTIALS = pika.PlainCredentials("guest", "guest")
+# The broker to connect to. To use another one, set RABBITMQ_URL in broker.env at the root of the repository, or in
+# the environment (see the README). Several URLs, separated by commas, are tried in random order.
+DEFAULT_URL = ",".join(f"amqp://guest:guest@localhost:{port}/%2F" for port in (5672, 5673, 5674))
+BROKER_ENV = Path(__file__).resolve().parent.parent / "broker.env"
 
 # run.py starts one taxi process per entry.
 FLEET = {
@@ -25,18 +29,25 @@ ZONES = ["north", "south", "east"]
 CUSTOMERS = ["Ada", "Alan", "Barbara", "Donald", "Edsger", "Grace", "Joe", "Ken", "Radia", "Tim"]
 
 
+def broker_urls():
+    """The broker's AMQP URLs: RABBITMQ_URL from the environment, else from broker.env, else the local cluster."""
+    url = os.environ.get("RABBITMQ_URL")
+    if not url and BROKER_ENV.exists():
+        for line in BROKER_ENV.read_text().splitlines():
+            key, _, value = line.partition("=")
+            if key.strip() == "RABBITMQ_URL":
+                url = value.strip()
+    return [u.strip() for u in (url or DEFAULT_URL).split(",") if u.strip()]
+
+
 def connect(service_name):
-    """Open a connection to one of the cluster nodes, trying them in random order."""
-    nodes = random.sample(NODES, len(NODES))
-    parameters = [
-        pika.ConnectionParameters(
-            host=host,
-            port=port,
-            credentials=CREDENTIALS,
-            client_properties={"connection_name": service_name},
-        )
-        for host, port in nodes
-    ]
+    """Open a connection to one of the broker's URLs, trying them in random order."""
+    urls = broker_urls()
+    parameters = []
+    for url in random.sample(urls, len(urls)):
+        params = pika.URLParameters(url)
+        params.client_properties = {"connection_name": service_name}
+        parameters.append(params)
     return pika.BlockingConnection(parameters)
 
 

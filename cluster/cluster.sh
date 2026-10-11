@@ -38,7 +38,7 @@ USAGE
 local_only() {
   if ! mgmt is-local; then
     echo "$1 needs the local Docker cluster, but broker.env (or RABBITMQ_URL) points to another broker." >&2
-    echo "On CloudAMQP, use the console to restart nodes and to look at the logs." >&2
+    echo "A CloudAMQP free plan has a single node that can't be stopped: follow this task on the facilitator's screen." >&2
     exit 1
   fi
 }

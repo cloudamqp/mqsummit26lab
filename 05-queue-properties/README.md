@@ -65,6 +65,9 @@ python run.py
  6. Stop the node holding `ride.requests.north` again and run `python run.py`. What happens to the north manager?
     And to the rides requested in the north while the node is down? Start the node again before moving on
 
+On a CloudAMQP free plan, the broker has a single node that you can't stop, so tasks 5 and 6 need the local cluster. Follow them
+on the facilitator's screen, or do them on the local cluster if you have Docker.
+
 ## Check
 
 ```

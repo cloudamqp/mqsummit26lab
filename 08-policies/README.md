@@ -61,7 +61,8 @@ python run.py
  4. With the scenario running, change the maximum length to 3 and run `./policies.sh` again. Did you need to
     restart anything?
  5. Add an operator policy that limits every queue to 1000 messages. Look at the effective policy definition of
-    `ride.requests.north` again
+    `ride.requests.north` again (On a CloudAMQP free plan, your user isn't allowed to set operator
+    policies: skip this task)
  6. Add a second policy that matches `ride.requests.north` only, with a higher priority and only
     `{"max-length": 10}`. What happens to the TTL of `ride.requests.north`?
  7. Bring back `"x-max-length": 2` in `manager.py` (reset the broker first). Which limit applies now, the

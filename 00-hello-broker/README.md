@@ -51,7 +51,7 @@ python run.py
 ```
 
 Open the management UI at http://localhost:15672 (user `guest`, password `guest`). On CloudAMQP, open it from the
-instance's console.
+instance's page in the CloudAMQP console.
 
 ## Tasks
 

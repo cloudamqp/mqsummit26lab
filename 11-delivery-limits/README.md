@@ -54,10 +54,11 @@ python run.py broken-rides
        then start `python support.py`. Are the broken rides there?
     2. Add `"dead-letter-strategy": "at-least-once"` and `"overflow": "reject-publish"` to the `ride-requests` policy,
        run `./policies.sh`, and repeat the experiment. Watch the message count of the ride queues while support is
-       away
+       away. On CloudAMQP, the queue retries dead-lettering every 3 minutes by default, not every 10 s as on the
+       local cluster, so give support time to receive the rides once it's back
  5. Remove `"overflow": "reject-publish"` from the policy, run `./policies.sh`, and look for the warning in the
-    broker log: `docker compose -f ../cluster/docker-compose.yml logs | grep at-least-once` (on CloudAMQP, in the
-    instance's log in the console)
+    broker log: `docker compose -f ../cluster/docker-compose.yml logs | grep at-least-once`. On a CloudAMQP free plan, you can't
+    read the broker log: ask the facilitator to show the warning
 
 ## Check
 

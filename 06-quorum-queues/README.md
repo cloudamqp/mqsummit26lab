@@ -58,6 +58,9 @@ python run.py
  6. Start the node again. Does the leader move back?
  7. Stop two nodes. What happens to the quorum queues now? Start them again before moving on
 
+On a CloudAMQP free plan, the broker has a single node: every quorum queue has one member, and you can't stop the node. Do tasks
+1 and 2, then follow tasks 3 to 7 on the facilitator's screen, or do them on the local cluster if you have Docker.
+
 ## Check
 
 ```

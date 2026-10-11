@@ -43,12 +43,26 @@ virtual host the exercises use. `broker.env` is ignored by git, so your password
  * `cluster/cluster.sh` talks to the broker's management HTTP API, at `https://HOST` for `amqps://` URLs and at
    `http://HOST:15672` for `amqp://` URLs. Set `RABBITMQ_MGMT_URL` if yours is somewhere else
 
-On CloudAMQP, a few tasks need the local cluster instead:
+A CloudAMQP free plan is enough for the workshop, with a few limits. The exercises say where each one applies:
 
- * Stopping and starting nodes (exercises 05 and 06). `cluster.sh stop-node` only works with the local cluster
- * Operator policies (exercise 08, task 5) need a user with the `administrator` tag
- * Reading the broker log (exercise 11, task 5): use the CloudAMQP console
- * On a single-node instance, quorum queues have one member, so exercise 06 has no leader election to watch
+ * The broker has a single node, which you can't stop or start. Exercise 05 (tasks 5 and 6) and exercise 06
+   (tasks 3 to 7) need the local cluster: follow them on the facilitator's screen
+ * Quorum queues have one member, so there's no leader election to watch
+ * Operator policies (exercise 08, task 5) aren't allowed
+ * You can't read the broker log (exercise 11, task 5)
+
+## Check your setup
+
+Once the broker is running (`cluster/cluster.sh up` for the local cluster) or `broker.env` points to your CloudAMQP
+instance:
+
+```shell
+tools/check.sh
+```
+
+It checks Python and `pika`, Docker when you use the local cluster, that the services can connect to every node of the
+broker and declare a queue, and that `cluster/cluster.sh` can reach the management API. It ends with "Ready for the
+workshop." or tells you what to fix.
 
 ## The broker
 
@@ -73,7 +87,7 @@ cluster/cluster.sh down        # stop the cluster and delete all its data
 ```
 
  * Management UI: http://localhost:15672 (also on 15673 and 15674), user
-   `guest`, password `guest`. On CloudAMQP, open the management UI from the instance's console
+   `guest`, password `guest`. On CloudAMQP, open the management UI from the instance's page in the CloudAMQP console
  * AMQP: `localhost:5672` (`rmq1`), `localhost:5673` (`rmq2`), `localhost:5674` (`rmq3`)
 
 Reset the broker at the start of each exercise. Most exercises change how

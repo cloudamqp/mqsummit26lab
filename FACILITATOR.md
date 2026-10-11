@@ -8,6 +8,8 @@ them were also reproduced on the workshop cluster. Paths are relative to the
 ## Before the workshop
 
  * Pull the image ahead of time: `docker pull rabbitmq:4.2-management`
+ * Ask participants to run `tools/check.sh` before the workshop. It checks Python, `pika`, Docker (local cluster
+   only) and that the broker is reachable over AMQP and through the management API
  * Run `tools/smoke.sh` after changing any exercise. It resets the broker, runs a scenario of every folder and checks the
    log for the lines that the previous exercise's solution produces. It takes about 5 minutes
  * The cluster sets `dead_letter_worker_publisher_confirm_timeout` to 10 s in `cluster/advanced.config`. The default is
@@ -24,14 +26,18 @@ them were also reproduced on the workshop cluster. Paths are relative to the
 
 ### Running the workshop on CloudAMQP
 
-Participants set `RABBITMQ_URL` in `broker.env` (see the README). Things that differ from the local cluster:
+Participants use free CloudAMQP plans and set `RABBITMQ_URL` in `broker.env` (see the README). A free plan has a
+single node, and participants can't stop or start it or read its logs. Things that differ from the local cluster:
 
- * `stop-node` and `start-node` only work locally, so exercise 05 tasks 5 and 6 and exercise 06 tasks 4 to 7 need the
-   local cluster (or, on a dedicated plan, restarting nodes from the CloudAMQP console)
- * Exercise 08 task 5: operator policies need a user with the `administrator` tag
- * Exercise 11: `cluster/advanced.config` isn't applied, so at-least-once dead-lettering retries every 180 s instead of
-   10 s. Task 5's broker log is in the CloudAMQP console
- * On a single-node instance, quorum queues have one member, so exercise 06 has no leader election to observe
+ * Demo on the local cluster, on the projector: exercise 05 tasks 5 and 6 (node restart, persistent messages) and
+   exercise 06 tasks 3 to 7 (members, leader election, losing quorum). `stop-node` and `start-node` refuse to run
+   against a remote broker
+ * Every quorum queue has one member on a single-node instance
+ * Exercise 08 task 5: operator policies need the `administrator` tag, which free-plan users don't have (verified:
+   `HTTP 401 Not administrator user`)
+ * Exercise 11: `cluster/advanced.config` isn't applied, so at-least-once dead-lettering retries every 180 s by default
+   (also in 4.3.6, `deps/rabbit/Makefile:117` at `v4.3.6`) instead of 10 s. Show the task 5 warning from the local
+   cluster's log
  * The instance's RabbitMQ version may not be the `4.2.9` that these notes were checked against
  * `cluster/cluster.sh reset` empties the virtual host instead of recreating it, because CloudAMQP users can't create
    virtual hosts. It deletes the queues, the exchanges and the policies with priority 0 or more, and keeps CloudAMQP's

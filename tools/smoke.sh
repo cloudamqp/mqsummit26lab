@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Run a scenario of every exercise against the workshop cluster and check its output for the lines that the
-# solution to the previous exercise should produce. It resets the broker before each exercise and takes about
-# 5 minutes. Usage: tools/smoke.sh [FOLDER...]
+# Run a scenario of every exercise against the workshop broker (the local cluster, or the one in broker.env or
+# RABBITMQ_URL) and check its output for the lines that the solution to the previous exercise should produce. It
+# resets the broker before each exercise and takes about 5 minutes. Usage: tools/smoke.sh [FOLDER...]
 set -uo pipefail
 
 cd "$(dirname "$0")/.."

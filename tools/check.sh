@@ -139,7 +139,7 @@ else
   if grep -q "HTTP 401" <<<"$status"; then
     hint "Wrong user or password, or the user can't use the management API"
   else
-    hint "cluster/cluster.sh needs it. Set RABBITMQ_MGMT_URL in broker.env if it isn't at the default address"
+    hint "cluster/cluster.sh needs it: check RABBITMQ_URL in broker.env, and that the broker is running"
   fi
 fi
 

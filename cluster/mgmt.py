@@ -1,9 +1,10 @@
 """Manage the workshop broker through the RabbitMQ management HTTP API. Called by cluster.sh.
 
-The broker is the one the services use: RABBITMQ_URL from the environment, else from broker.env at the root of the
-repository, else the local cluster. Each amqp://HOST:PORT URL has its management API at http://HOST:PORT+10000
-(5672 -> 15672), and each amqps://HOST URL at https://HOST, unless RABBITMQ_MGMT_URL says otherwise. The URLs are
-tried in order, so a stopped local node doesn't break the commands.
+The broker is the one the services use: RABBITMQ_URL (amqp://USER:PASSWORD@HOST/VHOST) from the environment, else
+from broker.env at the root of the repository, else the local cluster. A localhost URL without a port means the 3 nodes
+of the local cluster. The management API of an amqp://HOST:PORT node is at http://HOST:PORT+10000 (5672 -> 15672), and
+that of an amqps://HOST broker at https://HOST. The nodes are tried in order, so a stopped local node doesn't break the
+commands.
 """
 
 import argparse
@@ -16,25 +17,31 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
 
-DEFAULT_URL = ",".join(f"amqp://guest:guest@localhost:{port}/%2F" for port in (5672, 5673, 5674))
+DEFAULT_URL = "amqp://guest:guest@localhost/%2F"
 BROKER_ENV = Path(__file__).resolve().parent.parent / "broker.env"
-LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+LOCAL_HOSTS = {"localhost", "127.0.0.1"}
+LOCAL_PORTS = (5672, 5673, 5674)  # the 3 nodes of the local cluster
 
 
-def setting(name):
-    """A setting from the environment, else from broker.env."""
-    value = os.environ.get(name)
-    if not value and BROKER_ENV.exists():
+def broker_url():
+    """RABBITMQ_URL from the environment, else from broker.env, else the local cluster."""
+    url = os.environ.get("RABBITMQ_URL")
+    if not url and BROKER_ENV.exists():
         for line in BROKER_ENV.read_text().splitlines():
-            key, _, val = line.partition("=")
-            if key.strip() == name:
-                value = val.strip()
-    return value
+            key, _, value = line.partition("=")
+            if key.strip() == "RABBITMQ_URL":
+                url = value.strip()
+    return url or DEFAULT_URL
 
 
 def broker_urls():
-    url = setting("RABBITMQ_URL") or DEFAULT_URL
-    return [u.strip() for u in url.split(",") if u.strip()]
+    """The URL of each node, as in common.py: a localhost URL without a port stands for the 3 local nodes."""
+    url = urlsplit(broker_url())
+    if url.hostname not in LOCAL_HOSTS or url.port:
+        return [url.geturl()]
+    credentials = url.netloc.rpartition("@")[0]
+    prefix = f"{credentials}@" if credentials else ""
+    return [url._replace(netloc=f"{prefix}{url.hostname}:{port}").geturl() for port in LOCAL_PORTS]
 
 
 def is_local():
@@ -48,16 +55,13 @@ class Broker:
         self.user = unquote(url.username or "guest")
         self.password = unquote(url.password or "guest")
         self.vhost = unquote(url.path[1:]) if len(url.path) > 1 else "/"
-        if setting("RABBITMQ_MGMT_URL"):
-            apis = [setting("RABBITMQ_MGMT_URL").rstrip("/")]
-        else:
-            apis = []
-            for amqp in map(urlsplit, broker_urls()):
-                if amqp.scheme == "amqps":
-                    apis.append(f"https://{amqp.hostname}")
-                else:
-                    apis.append(f"http://{amqp.hostname}:{(amqp.port or 5672) + 10000}")
-        self.apis = [api if api.endswith("/api") else api + "/api" for api in dict.fromkeys(apis)]
+        apis = []
+        for amqp in map(urlsplit, broker_urls()):
+            if amqp.scheme == "amqps":
+                apis.append(f"https://{amqp.hostname}/api")
+            else:
+                apis.append(f"http://{amqp.hostname}:{(amqp.port or 5672) + 10000}/api")
+        self.apis = list(dict.fromkeys(apis))
         self.api = self.apis[0]
 
     def request(self, method, path, body=None):
@@ -82,7 +86,7 @@ class Broker:
             self.api = api
             return json.loads(content) if content else None
         sys.exit(f"Can't reach the management API at {', '.join(self.apis)}\n"
-                 f"Check RABBITMQ_URL (or RABBITMQ_MGMT_URL) in broker.env, and that the broker is running.")
+                 f"Check RABBITMQ_URL in broker.env, and that the broker is running.")
 
     def path(self, collection, name=None):
         """An API path such as /queues/%2F/ride.audit, with the vhost and the name URL-encoded."""

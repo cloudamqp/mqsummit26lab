@@ -37,11 +37,12 @@ Then set `RABBITMQ_URL` in `broker.env` to the AMQP URL of the broker. For Cloud
 instance's details page: `amqps://USER:PASSWORD@HOST.rmq.cloudamqp.com/VHOST`. The part after the last `/` is the
 virtual host the exercises use. `broker.env` is ignored by git, so your password stays out of the repository.
 
- * The services (`common.py:connect()`) and `cluster/cluster.sh` both read `broker.env`. A `RABBITMQ_URL`
-   environment variable overrides it
- * `RABBITMQ_URL` can hold several URLs separated by commas, one per node. The services try them in random order
- * `cluster/cluster.sh` talks to the broker's management HTTP API, at `https://HOST` for `amqps://` URLs and at
-   `http://HOST:15672` for `amqp://` URLs. Set `RABBITMQ_MGMT_URL` if yours is somewhere else
+ * `RABBITMQ_URL` is the only setting. The services (`common.py:connect()`), `cluster/cluster.sh` and `tools/check.sh`
+   all read it from `broker.env`, and a `RABBITMQ_URL` environment variable overrides it
+ * A `localhost` URL without a port, such as the default `amqp://guest:guest@localhost/%2F`, means the 3 nodes of the
+   local cluster, on ports 5672 to 5674. The services try them in random order
+ * `cluster/cluster.sh` talks to the broker's management HTTP API, which it finds from the same URL: at
+   `https://HOST` for `amqps://` URLs, and at `http://HOST:15672` for `amqp://` URLs
 
 A CloudAMQP free plan is enough for the workshop, with a few limits. The exercises say where each one applies:
 

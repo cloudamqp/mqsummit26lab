@@ -11,7 +11,9 @@ them were also reproduced on the workshop cluster. Paths are relative to the
  * Ask participants to run `tools/check.sh` before the workshop. It checks Python, `pika`, Docker (local cluster
    only) and that the broker is reachable over AMQP and through the management API
  * Run `tools/smoke.sh` after changing any exercise. It resets the broker, runs a scenario of every folder and checks the
-   log for the lines that the previous exercise's solution produces. It takes about 5 minutes
+   log for the lines that the previous exercise's solution produces. It takes about 5 minutes. It uses the broker in
+   `broker.env`, so it can check a CloudAMQP instance too. The `12-final` check occasionally fails when every broken
+   ride in its 25 s window is for `east`, which goes to the partner instead of a manager: run it again
  * The cluster sets `dead_letter_worker_publisher_confirm_timeout` to 10 s in `cluster/advanced.config`. The default is
    180 s (`deps/rabbit/Makefile:117`). It's how often a quorum queue retries at-least-once dead-lettering when the
    target can't be reached (`deps/rabbit/src/rabbit_fifo_dlx_worker.erl:356-360`), and 180 s is too long for

@@ -8,14 +8,16 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pika
 from pika.exceptions import AMQPConnectionError
 
-# The broker to connect to. To use another one, set RABBITMQ_URL in broker.env at the root of the repository, or in
-# the environment (see the README). Several URLs, separated by commas, are tried in random order.
-DEFAULT_URL = ",".join(f"amqp://guest:guest@localhost:{port}/%2F" for port in (5672, 5673, 5674))
+# The broker to connect to: one URL, amqp://USER:PASSWORD@HOST/VHOST (amqps:// for TLS). To use another broker, set
+# RABBITMQ_URL in broker.env at the root of the repository, or in the environment (see the README).
+DEFAULT_URL = "amqp://guest:guest@localhost/%2F"
 BROKER_ENV = Path(__file__).resolve().parent.parent / "broker.env"
+LOCAL_PORTS = (5672, 5673, 5674)  # the 3 nodes of the local cluster
 
 # run.py starts one taxi process per entry.
 FLEET = {
@@ -29,15 +31,25 @@ ZONES = ["north", "south", "east"]
 CUSTOMERS = ["Ada", "Alan", "Barbara", "Donald", "Edsger", "Grace", "Joe", "Ken", "Radia", "Tim"]
 
 
-def broker_urls():
-    """The broker's AMQP URLs: RABBITMQ_URL from the environment, else from broker.env, else the local cluster."""
+def broker_url():
+    """RABBITMQ_URL from the environment, else from broker.env, else the local cluster."""
     url = os.environ.get("RABBITMQ_URL")
     if not url and BROKER_ENV.exists():
         for line in BROKER_ENV.read_text().splitlines():
             key, _, value = line.partition("=")
             if key.strip() == "RABBITMQ_URL":
                 url = value.strip()
-    return [u.strip() for u in (url or DEFAULT_URL).split(",") if u.strip()]
+    return url or DEFAULT_URL
+
+
+def broker_urls():
+    """The URL of each node. A localhost URL without a port stands for the 3 nodes of the local cluster."""
+    url = urlsplit(broker_url())
+    if url.hostname not in ("localhost", "127.0.0.1") or url.port:
+        return [url.geturl()]
+    credentials = url.netloc.rpartition("@")[0]
+    prefix = f"{credentials}@" if credentials else ""
+    return [url._replace(netloc=f"{prefix}{url.hostname}:{port}").geturl() for port in LOCAL_PORTS]
 
 
 def connect(service_name):
